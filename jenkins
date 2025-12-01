@@ -1,30 +1,22 @@
-
 pipeline {
-    agent any
+    agent { label 'win' }
 
-    tools {
-        maven 'M3.9'
-    }
+    tools { maven 'M3.9' }
 
     stages {
-
         stage('Checkout') {
-            steps {
-                checkout scm
-            }
+            steps { checkout scm }
         }
 
         stage('Build with Maven') {
-            steps {
-                bat 'mvn -B -DskipTests clean package'
-            }
+            steps { bat 'mvn -B -DskipTests clean package' }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    bat "docker build -t <username>/demo:latest . "
-		            bat "docker run <username>/demo:latest"
+                    bat 'docker build -t vishnupriyaerakasani/demo:latest .'
+                    bat 'docker run -d --rm --name demo_demo -p 8080:8080 vishnupriyaerakasani/demo:latest'
                 }
             }
         }
@@ -32,11 +24,11 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    bat '''
-                    docker login -u <username> -p <token_access>
-                    docker push <username>/demo:latest
-                    docker logout
-                    '''
+                    withCredentials([string(credentialsId: 'dockerhub_token', variable: 'DOCKER_TOKEN')]) {
+                        bat 'echo %DOCKER_TOKEN% | docker login --username vishnupriyaerakasani --password-stdin'
+                        bat 'docker push vishnupriyaerakasani/demo:latest'
+                        bat 'docker logout'
+                    }
                 }
             }
         }
